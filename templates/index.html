@@ -30,7 +30,15 @@
             <div class="chart-container">
                 <canvas id="stockChart"></canvas>
             </div>
+            <div class="add-portfolio-container">
+                <button id="addToPortfolioBtn" class="hidden" data-ticker="">Add to Portfolio</button>
+            </div>
         </div>
+    </div>
+    <div class="container" id="portfolioSection">
+        <h2>My Portfolio</h2>
+        <div id="portfolioLoading" class="hidden">Loading portfolio...</div>
+        <ul id="portfolioList"></ul>
     </div>
     <script src="/static/js/script.js"></script>
 </body>
