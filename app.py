@@ -49,19 +49,29 @@ def get_stock_data(ticker):
         hist = stock.history(period="1y")
 
         currency = info.get('currency', 'USD')
+        # For Israeli stocks, yfinance returns prices in Agorot (1/100 of ILS).
+        # We convert it to the main currency unit (Shekels).
+        divisor = 100.0 if currency in ('ILS', 'ILA') else 1.0
+
+        def adjust_value(value):
+            """Divides value by divisor if it's a number, otherwise returns as is."""
+            if isinstance(value, (int, float)):
+                return value / divisor
+            return value
+
         data = {
             'name': info.get('shortName', 'N/A'),
             'symbol': info.get('symbol', 'N/A'),
-            'currentPrice': info.get('regularMarketPrice', info.get('currentPrice', 'N/A')),
-            'dayHigh': info.get('dayHigh', 'N/A'),
-            'dayLow': info.get('dayLow', 'N/A'),
+            'currentPrice': adjust_value(info.get('regularMarketPrice', info.get('currentPrice', 'N/A'))),
+            'dayHigh': adjust_value(info.get('dayHigh', 'N/A')),
+            'dayLow': adjust_value(info.get('dayLow', 'N/A')),
             'currency': currency,
-            'fiftyTwoWeekHigh': info.get('fiftyTwoWeekHigh', 'N/A'),
-            'fiftyTwoWeekLow': info.get('fiftyTwoWeekLow', 'N/A'),
-            'marketCap': info.get('marketCap', 'N/A'),
+            'fiftyTwoWeekHigh': adjust_value(info.get('fiftyTwoWeekHigh', 'N/A')),
+            'fiftyTwoWeekLow': adjust_value(info.get('fiftyTwoWeekLow', 'N/A')),
+            'marketCap': adjust_value(info.get('marketCap', 'N/A')),
             'history': {
                 'dates': hist.index.strftime('%Y-%m-%d').tolist(),
-                'prices': hist['Close'].tolist()
+                'prices': (hist['Close'] / divisor).tolist()
             }
         }
         return jsonify(data)
@@ -85,11 +95,19 @@ def get_portfolio():
         for ticker in tickers:
             info = data.tickers[ticker.upper()].info
             if info.get('shortName'):
+                currency = info.get('currency', 'USD')
+                # Adjust for Agorot vs Shekels
+                divisor = 100.0 if currency in ('ILS', 'ILA') else 1.0
+
+                price = info.get('regularMarketPrice', info.get('currentPrice', 'N/A'))
+                if isinstance(price, (int, float)):
+                    price /= divisor
+
                 portfolio_data.append({
                     'name': info.get('shortName'),
                     'symbol': info.get('symbol'),
-                    'currentPrice': info.get('regularMarketPrice', info.get('currentPrice', 'N/A')),
-                    'currency': info.get('currency', 'USD')
+                    'currentPrice': price,
+                    'currency': currency
                 })
         return jsonify(portfolio_data)
     except Exception as e:
