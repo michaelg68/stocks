@@ -48,12 +48,14 @@ def get_stock_data(ticker):
         # Fetch historical data for the chart
         hist = stock.history(period="1y")
 
+        currency = info.get('currency', 'USD')
         data = {
             'name': info.get('shortName', 'N/A'),
             'symbol': info.get('symbol', 'N/A'),
             'currentPrice': info.get('regularMarketPrice', info.get('currentPrice', 'N/A')),
             'dayHigh': info.get('dayHigh', 'N/A'),
             'dayLow': info.get('dayLow', 'N/A'),
+            'currency': currency,
             'fiftyTwoWeekHigh': info.get('fiftyTwoWeekHigh', 'N/A'),
             'fiftyTwoWeekLow': info.get('fiftyTwoWeekLow', 'N/A'),
             'marketCap': info.get('marketCap', 'N/A'),
@@ -86,7 +88,8 @@ def get_portfolio():
                 portfolio_data.append({
                     'name': info.get('shortName'),
                     'symbol': info.get('symbol'),
-                    'currentPrice': info.get('regularMarketPrice', info.get('currentPrice', 'N/A'))
+                    'currentPrice': info.get('regularMarketPrice', info.get('currentPrice', 'N/A')),
+                    'currency': info.get('currency', 'USD')
                 })
         return jsonify(portfolio_data)
     except Exception as e:
