@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Exchange Monitor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Stock Exchange Monitor</h1>
+        <div class="search-box">
+            <input type="text" id="tickerInput" placeholder="Enter Stock Ticker (e.g., AAPL)">
+            <button id="searchBtn">Get Stock Info</button>
+        </div>
+        <div id="loading" class="hidden">Loading...</div>
+        <div id="error" class="hidden"></div>
+        <div id="stockInfo" class="hidden">
+            <h2 id="stockName"></h2>
+            <div class="info-grid">
+                <p><strong>Symbol:</strong> <span id="stockSymbol"></span></p>
+                <p><strong>Current Price:</strong> <span id="currentPrice"></span></p>
+                <p><strong>Day High:</strong> <span id="dayHigh"></span></p>
+                <p><strong>Day Low:</strong> <span id="dayLow"></span></p>
+                <p><strong>52 Week High:</strong> <span id="fiftyTwoWeekHigh"></span></p>
+                <p><strong>52 Week Low:</strong> <span id="fiftyTwoWeekLow"></span></p>
+                <p><strong>Market Cap:</strong> <span id="marketCap"></span></p>
+            </div>
+            <div class="chart-container">
+                <canvas id="stockChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
