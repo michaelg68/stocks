@@ -1,5 +1,6 @@
 import sqlite3
 import yfinance as yf
+from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, g
 
 DATABASE = 'portfolio.db'
@@ -48,6 +49,14 @@ def get_stock_data(ticker):
         # Fetch historical data for the chart
         hist = stock.history(period="1y")
 
+        # --- Data Integrity and Sorting ---
+        if not hist.empty:
+            # 1. Sort chronologically to be certain
+            hist.sort_index(ascending=True, inplace=True)
+            # 2. Filter out any anomalous future dates
+            today_utc = datetime.now(timezone.utc)
+            hist = hist[hist.index <= today_utc]
+
         currency = info.get('currency', 'USD')
         # For Israeli stocks, yfinance returns prices in Agorot (1/100 of ILS).
         # We convert it to the main currency unit (Shekels).
@@ -70,8 +79,11 @@ def get_stock_data(ticker):
             'fiftyTwoWeekLow': adjust_value(info.get('fiftyTwoWeekLow', 'N/A')),
             'marketCap': adjust_value(info.get('marketCap', 'N/A')),
             'history': {
-                'dates': hist.index.strftime('%Y-%m-%d').tolist(),
-                'prices': (hist['Close'] / divisor).tolist()
+                # Send data as a list of {x, y} points for time series charts
+                'points': [
+                    {'x': int(ts.timestamp() * 1000), 'y': price}
+                    for ts, price in (hist['Close'] / divisor).items()
+                ]
             }
         }
         return jsonify(data)

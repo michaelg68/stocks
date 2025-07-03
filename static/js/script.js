@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stockChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: history.dates,
+                // No more 'labels', data is now self-contained
                 datasets: [{
                     label: `Closing Price (${currency})`,
-                    data: history.prices,
+                    data: history.points, // Use the new {x, y} data points
                     borderColor: 'rgba(75, 192, 192, 1)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderWidth: 2,
@@ -91,6 +91,20 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             options: {
                 scales: {
+                    x: {
+                        type: 'time', // Use the time scale
+                        time: {
+                            unit: 'month',
+                            tooltipFormat: 'MMM dd, yyyy', // e.g., Jun 19, 2024
+                            displayFormats: {
+                                month: 'MMM yyyy' // e.g., Jun 2024
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
                     y: {
                         ticks: {
                             callback: (value) => {
