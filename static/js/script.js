@@ -11,6 +11,32 @@ document.addEventListener('DOMContentLoaded', () => {
     let stockChart = null;
     let currentTicker = null;
 
+    // --- Custom Chart.js Plugin ---
+    // Define the plugin once and register it globally for our chart instance.
+    const verticalLinePlugin = {
+        id: 'verticalLine',
+        afterDraw: (chart) => {
+            // We only want to draw the line when the tooltip is active
+            if (chart.tooltip?._active?.length) {
+                const ctx = chart.ctx;
+                const x = chart.tooltip._active[0].element.x;
+                const topY = chart.scales.y.top;
+                const bottomY = chart.scales.y.bottom;
+
+                // Draw the vertical line
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x, topY);
+                ctx.lineTo(x, bottomY);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(150, 150, 150, 0.7)';
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+    };
+    Chart.register(verticalLinePlugin);
+
     // --- Main Stock Search Logic ---
     const fetchStockData = async () => {
         const ticker = tickerInput.value.trim().toUpperCase();
@@ -98,6 +124,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }]
             },
             options: {
+                layout: {
+                    padding: {
+                        bottom: 10 // Ensures the x-axis title has some space below it
+                    }
+                },
+                interaction: {
+                    // Show tooltip when hovering anywhere near the point, not just directly on it.
+                    // This is helpful since our points have a radius of 0.
+                    intersect: false,
+                    mode: 'index',
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                // Use the existing currency formatter for a clean, consistent look
+                                return `Price: ${formatCurrency(value, currency)}`;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     x: {
                         type: 'time', // Use the time scale
