@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     portfolioData.forEach(stock => {
                         const li = document.createElement('li');
                         li.innerHTML = `
-                            <div class="portfolio-item-info">
+                            <div class="portfolio-item-info portfolio-item-clickable" data-ticker="${stock.symbol}">
                                 <span class="symbol">${stock.symbol}</span>
                                 <span>(${stock.name})</span> - 
                                 <strong>${formatCurrency(stock.currentPrice, stock.currency)}</strong>
@@ -201,13 +201,26 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`${ticker} has been added to your portfolio!`);
     };
 
-    const handleRemoveFromPortfolio = async (e) => {
-        if (e.target.classList.contains('remove-btn')) {
-            const ticker = e.target.dataset.ticker;
+    const handlePortfolioClick = async (e) => {
+        const removeBtn = e.target.closest('.remove-btn');
+        const drillDownItem = e.target.closest('.portfolio-item-clickable');
+
+        if (removeBtn) {
+            // Handle removing a stock from the portfolio
+            const ticker = removeBtn.dataset.ticker;
             if (!ticker) return;
 
             await fetch(`/api/portfolio/remove/${ticker}`, { method: 'POST' });
             await loadPortfolio(); // Refresh the portfolio list
+        } else if (drillDownItem) {
+            // Handle drilling down into a stock's details
+            const ticker = drillDownItem.dataset.ticker;
+            if (ticker) {
+                tickerInput.value = ticker;
+                await fetchStockData();
+                // Scroll to the top of the page for a better user experience
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }
     };
 
@@ -219,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     addToPortfolioBtn.addEventListener('click', handleAddToPortfolio);
-    portfolioList.addEventListener('click', handleRemoveFromPortfolio);
+    portfolioList.addEventListener('click', handlePortfolioClick);
 
     // --- Initial Load ---
     loadPortfolio();

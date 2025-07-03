@@ -157,6 +157,16 @@ h1 {
     color: #333;
 }
 
+.portfolio-item-info.portfolio-item-clickable {
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+.portfolio-item-info.portfolio-item-clickable:hover .symbol {
+    text-decoration: underline;
+    color: #00529B;
+}
+
 .remove-btn {
     padding: 8px 15px;
     background-color: #dc3545;
