@@ -5,9 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const portfolioList = document.getElementById('portfolioList');
     const portfolioLoadingDiv = document.getElementById('portfolioLoading');
     const stockInfoDiv = document.getElementById('stockInfo');
+    const rangeSelector = document.querySelector('.range-selector');
     const errorDiv = document.getElementById('error');
     const loadingDiv = document.getElementById('loading');
     let stockChart = null;
+    let currentTicker = null;
 
     // --- Main Stock Search Logic ---
     const fetchStockData = async () => {
@@ -51,6 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const displayStockInfo = (data) => {
+        currentTicker = data.symbol; // Store the current ticker for range updates
+
         document.getElementById('stockName').textContent = `${data.name} (${data.symbol})`;
         document.getElementById('stockSymbol').textContent = data.symbol;
         document.getElementById('currentPrice').textContent = formatCurrency(data.currentPrice, data.currency);
@@ -63,6 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show and configure the 'Add to Portfolio' button
         addToPortfolioBtn.dataset.ticker = data.symbol;
         addToPortfolioBtn.classList.remove('hidden');
+
+        // Reset active range button to 1Y on new search
+        document.querySelectorAll('.range-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.range-btn[data-period="1y"]').classList.add('active');
 
         stockInfoDiv.classList.remove('hidden');
         renderChart(data.history, data.currency);
@@ -94,10 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     x: {
                         type: 'time', // Use the time scale
                         time: {
-                            unit: 'month',
+                            // Let Chart.js automatically determine the display unit
                             tooltipFormat: 'MMM dd, yyyy', // e.g., Jun 19, 2024
                             displayFormats: {
-                                month: 'MMM yyyy' // e.g., Jun 2024
+                                day: 'MMM dd',
+                                week: 'MMM dd',
+                                month: 'MMM yyyy',
+                                year: 'yyyy'
                             }
                         },
                         title: {
@@ -166,6 +177,36 @@ document.addEventListener('DOMContentLoaded', () => {
             if (value >= 1e9) return `${currency} ${(value / 1e9).toFixed(2)}B`;
             if (value >= 1e6) return `${currency} ${(value / 1e6).toFixed(2)}M`;
             return `${currency} ${value}`;
+        }
+    };
+
+    // --- Chart Range Update Logic ---
+    const handleRangeChange = async (e) => {
+        const selectedButton = e.target.closest('.range-btn');
+        // Do nothing if not a button, if it's already active, or if no stock is selected
+        if (!selectedButton || selectedButton.classList.contains('active') || !currentTicker) {
+            return;
+        }
+
+        const period = selectedButton.dataset.period;
+
+        // Update button styles to show which is active
+        document.querySelectorAll('.range-btn').forEach(btn => btn.classList.remove('active'));
+        selectedButton.classList.add('active');
+
+        try {
+            const response = await fetch(`/api/stock/${currentTicker}?period=${period}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                // We only need to re-render the chart with the new history
+                renderChart(data.history, data.currency);
+            } else {
+                alert(`Could not load data for period: ${period}. Error: ${data.error}`);
+            }
+        } catch (error) {
+            alert('Failed to update chart range. Please check your network connection.');
+            console.error('Range change fetch error:', error);
         }
     };
 
@@ -247,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     addToPortfolioBtn.addEventListener('click', handleAddToPortfolio);
     portfolioList.addEventListener('click', handlePortfolioClick);
+    rangeSelector.addEventListener('click', handleRangeChange);
 
     // --- Initial Load ---
     loadPortfolio();

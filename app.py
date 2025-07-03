@@ -1,7 +1,7 @@
 import sqlite3
 import yfinance as yf
 from datetime import datetime, timezone
-from flask import Flask, render_template, jsonify, g
+from flask import Flask, render_template, jsonify, g, request
 
 DATABASE = 'portfolio.db'
 app = Flask(__name__)
@@ -39,6 +39,9 @@ def index():
 def get_stock_data(ticker):
     """API endpoint to fetch stock data."""
     try:
+        # Get the period from query parameters, default to '1y'
+        period = request.args.get('period', '1y')
+
         stock = yf.Ticker(ticker)
         info = stock.info
 
@@ -46,8 +49,8 @@ def get_stock_data(ticker):
         if not info or 'shortName' not in info or info.get('shortName') is None:
             return jsonify({'error': f"Invalid ticker symbol: {ticker}"}), 404
 
-        # Fetch historical data for the chart
-        hist = stock.history(period="1y")
+        # Fetch historical data for the chart using the requested period
+        hist = stock.history(period=period)
 
         # --- Data Integrity and Sorting ---
         if not hist.empty:
