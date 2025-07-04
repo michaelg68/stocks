@@ -44,12 +44,7 @@ def get_stock_data(ticker):
 
         stock = yf.Ticker(ticker)
         info = stock.info
-
-        # Check if the ticker is valid by looking for a key that should exist
-        if not info or 'shortName' not in info or info.get('shortName') is None:
-            return jsonify({'error': f"Invalid ticker symbol: {ticker}"}), 404
-
-        # Fetch historical data for the chart using the requested period
+        # Fetch historical data first, as it's a key indicator of validity for indices
         hist = stock.history(period=period)
 
         # --- Data Integrity and Sorting ---
@@ -59,6 +54,15 @@ def get_stock_data(ticker):
             # 2. Filter out any anomalous future dates
             today_utc = datetime.now(timezone.utc)
             hist = hist[hist.index <= today_utc]
+
+        # A ticker is valid if it has a name in `info` OR if it has historical data.
+        # This handles indices which might have sparse `info` data but valid history.
+        is_valid_info = info and info.get('shortName') is not None
+        is_valid_history = not hist.empty
+
+        if not is_valid_info and not is_valid_history:
+            # If we have neither info nor history, the ticker is truly invalid.
+            return jsonify({'error': f"Invalid or unsupported ticker symbol: {ticker}"}), 404
 
         currency = info.get('currency', 'USD')
         # For Israeli stocks, yfinance returns prices in Agorot (1/100 of ILS).
@@ -71,10 +75,18 @@ def get_stock_data(ticker):
                 return value / divisor
             return value
 
+        # For indices, the 'name' might be in 'longName' if 'shortName' is absent.
+        # Also, the current price might be in the last 'Close' from history if not in info.
+        name = info.get('shortName') or info.get('longName', 'N/A')
+        current_price = info.get('regularMarketPrice', info.get('currentPrice'))
+        if current_price is None and not hist.empty:
+            # Fallback to the last closing price from the history
+            current_price = hist['Close'].iloc[-1]
+
         data = {
-            'name': info.get('shortName', 'N/A'),
-            'symbol': info.get('symbol', 'N/A'),
-            'currentPrice': adjust_value(info.get('regularMarketPrice', info.get('currentPrice', 'N/A'))),
+            'name': name,
+            'symbol': info.get('symbol', ticker.upper()), # Fallback to the requested ticker
+            'currentPrice': adjust_value(current_price) if current_price is not None else 'N/A',
             'dayHigh': adjust_value(info.get('dayHigh', 'N/A')),
             'dayLow': adjust_value(info.get('dayLow', 'N/A')),
             'currency': currency,
