@@ -2,6 +2,7 @@ import sqlite3
 import yfinance as yf
 from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, g, request
+import requests
 
 DATABASE = 'portfolio.db'
 app = Flask(__name__)
@@ -27,7 +28,7 @@ def close_connection(exception):
 def init_database():
     """Initializes the database table if it doesn't exist."""
     conn = get_db_connection()
-    conn.execute('CREATE TABLE IF NOT EXISTS portfolio (ticker TEXT NOT NULL UNIQUE)')
+    conn.execute('CREATE TABLE IF NOT EXISTS portfolio (ticker TEXT PRIMARY KEY, quantity REAL NOT NULL)')
     conn.commit()
 
 @app.route('/')
@@ -109,44 +110,79 @@ def get_stock_data(ticker):
 def get_portfolio():
     """API endpoint to fetch all stocks in the portfolio."""
     conn = get_db_connection()
-    tickers_rows = conn.execute('SELECT ticker FROM portfolio').fetchall()
+    tickers_rows = conn.execute('SELECT ticker, quantity FROM portfolio ORDER BY ticker').fetchall()
     
-    tickers = [row['ticker'] for row in tickers_rows]
-    if not tickers:
-        return jsonify([])
+    if not tickers_rows:
+        return jsonify({'items': [], 'totalValueUsd': 0})
+
+    tickers_with_qty = {row['ticker']: row['quantity'] for row in tickers_rows}
+    tickers_list = list(tickers_with_qty.keys())
 
     try:
         # Fetch all ticker data in one batch request for efficiency
-        data = yf.Tickers(' '.join(tickers))
-        portfolio_data = []
-        for ticker in tickers:
-            info = data.tickers[ticker.upper()].info
-            if info.get('shortName'):
-                currency = info.get('currency', 'USD')
-                # Adjust for Agorot vs Shekels
-                divisor = 100.0 if currency in ('ILS', 'ILA') else 1.0
+        stock_data = yf.Tickers(' '.join(tickers_list))
+        
+        currencies = {stock_data.tickers[t].info.get('currency', 'USD') for t in tickers_list}
+        rate_tickers_needed = {f"{c}USD=X" for c in currencies if c and c != 'USD'}
+        
+        rates_data = {}
+        if rate_tickers_needed:
+            rates_info = yf.Tickers(' '.join(rate_tickers_needed))
+            for rate_ticker in rate_tickers_needed:
+                currency_code = rate_ticker.replace("USD=X", "")
+                rates_data[currency_code] = rates_info.tickers[rate_ticker].info.get('regularMarketPrice')
 
-                price = info.get('regularMarketPrice', info.get('currentPrice', 'N/A'))
-                if isinstance(price, (int, float)):
-                    price /= divisor
+        portfolio_items = []
+        total_portfolio_value_usd = 0
 
-                portfolio_data.append({
-                    'name': info.get('shortName'),
-                    'symbol': info.get('symbol'),
-                    'currentPrice': price,
-                    'currency': currency
-                })
-        return jsonify(portfolio_data)
+        for ticker, quantity in tickers_with_qty.items():
+            info = stock_data.tickers[ticker].info
+            currency = info.get('currency', 'USD')
+            price = info.get('regularMarketPrice', info.get('currentPrice'))
+            
+            if price is None: continue
+
+            divisor = 100.0 if currency in ('ILS', 'ILA') else 1.0
+            price /= divisor
+            
+            value_local = price * quantity
+            
+            value_usd = value_local
+            if currency != 'USD':
+                rate = rates_data.get(currency)
+                if rate: value_usd *= rate
+                else: value_usd = 0 # Cannot convert, so exclude from total
+            
+            total_portfolio_value_usd += value_usd
+
+            portfolio_items.append({
+                'name': info.get('shortName', 'N/A'),
+                'symbol': ticker,
+                'quantity': quantity,
+                'currentPrice': price,
+                'currency': currency,
+                'valueUsd': value_usd
+            })
+            
+        return jsonify({'items': portfolio_items, 'totalValueUsd': total_portfolio_value_usd})
     except Exception as e:
         return jsonify({'error': f"An error occurred while fetching portfolio data: {str(e)}"}), 500
 
-@app.route('/api/portfolio/add/<string:ticker>', methods=['POST'])
-def add_to_portfolio(ticker):
-    """API endpoint to add a stock to the portfolio."""
+@app.route('/api/portfolio/add', methods=['POST'])
+def add_to_portfolio():
+    """API endpoint to add or update a stock in the portfolio."""
+    data = request.get_json()
+    ticker = data.get('ticker')
+    quantity = data.get('quantity')
+
+    if not ticker or quantity is None or float(quantity) < 0:
+        return jsonify({'error': 'Invalid ticker or quantity provided.'}), 400
+
     conn = get_db_connection()
-    conn.execute('INSERT OR IGNORE INTO portfolio (ticker) VALUES (?)', (ticker.upper(),))
+    conn.execute('INSERT INTO portfolio (ticker, quantity) VALUES (?, ?) ON CONFLICT(ticker) DO UPDATE SET quantity = excluded.quantity',
+                 (ticker.upper(), float(quantity)))
     conn.commit()
-    return jsonify({'success': f'{ticker} added to portfolio.'})
+    return jsonify({'success': f'{ticker} updated in portfolio.'})
 
 @app.route('/api/portfolio/remove/<string:ticker>', methods=['POST'])
 def remove_from_portfolio(ticker):

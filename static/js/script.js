@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tickerInput = document.getElementById('tickerInput');
     const addToPortfolioBtn = document.getElementById('addToPortfolioBtn');
     const portfolioList = document.getElementById('portfolioList');
+    const portfolioTotalDiv = document.getElementById('portfolioTotal');
     const portfolioLoadingDiv = document.getElementById('portfolioLoading');
     const stockInfoDiv = document.getElementById('stockInfo');
     const rangeSelector = document.querySelector('.range-selector');
@@ -68,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const hideAll = () => {
         stockInfoDiv.classList.add('hidden');
-        addToPortfolioBtn.classList.add('hidden');
+        document.getElementById('addPortfolioForm').classList.add('hidden');
         errorDiv.classList.add('hidden');
     };
 
@@ -91,8 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('marketCap').textContent = formatMarketCap(data.marketCap, data.currency);
         
         // Show and configure the 'Add to Portfolio' button
-        addToPortfolioBtn.dataset.ticker = data.symbol;
-        addToPortfolioBtn.classList.remove('hidden');
+        document.getElementById('addPortfolioForm').classList.remove('hidden');
+        document.getElementById('addToPortfolioBtn').dataset.ticker = data.symbol;
 
         // Reset active range button to 1Y on new search
         document.querySelectorAll('.range-btn').forEach(btn => btn.classList.remove('active'));
@@ -265,20 +266,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch('/api/portfolio');
-            const portfolioData = await response.json();
+            const data = await response.json();
             portfolioLoadingDiv.classList.add('hidden');
 
             if (response.ok) {
-                if (portfolioData.length === 0) {
+                // Display total portfolio value
+                portfolioTotalDiv.innerHTML = `<h3>Total Value: ${formatCurrency(data.totalValueUsd, 'USD')}</h3>`;
+
+                if (data.items.length === 0) {
                     portfolioList.innerHTML = '<li>Your portfolio is empty.</li>';
                 } else {
-                    portfolioData.forEach(stock => {
+                    data.items.forEach(stock => {
                         const li = document.createElement('li');
                         li.innerHTML = `
                             <div class="portfolio-item-info portfolio-item-clickable" data-ticker="${stock.symbol}">
-                                <span class="symbol">${stock.symbol}</span>
-                                <span>(${stock.name})</span> - 
-                                <strong>${formatCurrency(stock.currentPrice, stock.currency)}</strong>
+                                <div class="portfolio-item-main">
+                                    <span class="symbol">${stock.symbol}</span>
+                                    <span class="name">(${stock.name})</span>
+                                </div>
+                                <div class="portfolio-item-details">
+                                    <span>Qty: ${stock.quantity}</span>
+                                    <span>Value: ${formatCurrency(stock.valueUsd, 'USD')}</span>
+                                </div>
                             </div>
                             <button class="remove-btn" data-ticker="${stock.symbol}">Remove</button>
                         `;
@@ -286,9 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } else {
+                portfolioTotalDiv.innerHTML = '';
                 portfolioList.innerHTML = '<li>Could not load portfolio.</li>';
             }
         } catch (error) {
+            portfolioTotalDiv.innerHTML = '';
             portfolioLoadingDiv.classList.add('hidden');
             portfolioList.innerHTML = '<li>Error loading portfolio.</li>';
             console.error('Portfolio fetch error:', error);
@@ -298,10 +309,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleAddToPortfolio = async () => {
         const ticker = addToPortfolioBtn.dataset.ticker;
         if (!ticker) return;
+        
+        const quantityInput = document.getElementById('quantityInput');
+        const quantity = parseFloat(quantityInput.value);
 
-        await fetch(`/api/portfolio/add/${ticker}`, { method: 'POST' });
+        if (isNaN(quantity) || quantity < 0) {
+            alert('Please enter a valid, non-negative quantity.');
+            return;
+        }
+
+        await fetch('/api/portfolio/add', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker: ticker, quantity: quantity })
+        });
         await loadPortfolio(); // Refresh the portfolio list
-        alert(`${ticker} has been added to your portfolio!`);
+        alert(`${ticker} has been updated in your portfolio!`);
     };
 
     const handlePortfolioClick = async (e) => {

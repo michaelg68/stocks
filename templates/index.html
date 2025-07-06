@@ -40,13 +40,15 @@
                 </div>
                 <canvas id="stockChart"></canvas>
             </div>
-            <div class="add-portfolio-container">
-                <button id="addToPortfolioBtn" class="hidden" data-ticker="">Add to Portfolio</button>
+            <div id="addPortfolioForm" class="add-portfolio-container hidden">
+                <input type="number" id="quantityInput" placeholder="Quantity" min="0" step="any">
+                <button id="addToPortfolioBtn" data-ticker="">Add / Update Portfolio</button>
             </div>
         </div>
     </div>
     <div class="container" id="portfolioSection">
         <h2>My Portfolio</h2>
+        <div id="portfolioTotal"></div>
         <div id="portfolioLoading" class="hidden">Loading portfolio...</div>
         <ul id="portfolioList"></ul>
     </div>

@@ -139,6 +139,21 @@ h1 {
     margin-top: 50px;
 }
 
+#addPortfolioForm {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+#quantityInput {
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    width: 120px;
+}
+
 #addToPortfolioBtn {
     padding: 12px 25px;
     background-color: #28a745;
@@ -160,6 +175,12 @@ h1 {
     color: #00529B;
 }
 
+#portfolioTotal {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
 #portfolioList {
     list-style: none;
     padding: 0;
@@ -179,6 +200,20 @@ h1 {
 
 .portfolio-item-info {
     font-size: 18px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.portfolio-item-main {
+    margin-bottom: 5px;
+}
+
+.portfolio-item-details {
+    font-size: 0.8em;
+    color: #555;
+    display: flex;
+    gap: 20px;
 }
 
 .portfolio-item-info .symbol {
