@@ -285,8 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <span class="name">(${stock.name})</span>
                                 </div>
                                 <div class="portfolio-item-details">
-                                    <span>Qty: ${stock.quantity}</span>
-                                    <span>Value: ${formatCurrency(stock.valueUsd, 'USD')}</span>
+                                    <span>Qty: <span class="editable-quantity" data-ticker="${stock.symbol}">${stock.quantity}</span></span>
+                                    <span class="value-display">Value: ${formatCurrency(stock.valueUsd, 'USD')}</span>
                                 </div>
                             </div>
                             <button class="remove-btn" data-ticker="${stock.symbol}">Remove</button>
@@ -327,8 +327,51 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`${ticker} has been updated in your portfolio!`);
     };
 
+    const makeQuantityEditable = (spanElement) => {
+        // Prevent making it editable again if it's already an input
+        if (spanElement.querySelector('input')) {
+            return;
+        }
+    
+        const currentQuantity = spanElement.textContent;
+        const ticker = spanElement.dataset.ticker;
+    
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.value = currentQuantity;
+        input.className = 'quantity-edit-input';
+        input.min = "0";
+        input.step = "any";
+    
+        const updateQuantity = async () => {
+            const newQuantity = parseFloat(input.value);
+            if (!isNaN(newQuantity) && newQuantity >= 0 && newQuantity.toString() !== currentQuantity) {
+                // Call the API to update
+                await fetch('/api/portfolio/add', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker: ticker, quantity: newQuantity })
+                });
+                // Refresh the portfolio to show updated values
+                await loadPortfolio();
+            } else {
+                // If invalid or unchanged, just revert to the original text
+                spanElement.textContent = currentQuantity;
+            }
+        };
+    
+        input.addEventListener('blur', updateQuantity);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') { input.blur(); } });
+    
+        spanElement.textContent = '';
+        spanElement.appendChild(input);
+        input.focus();
+        input.select();
+    };
+
     const handlePortfolioClick = async (e) => {
         const removeBtn = e.target.closest('.remove-btn');
+        const editableQtySpan = e.target.closest('.editable-quantity');
         const drillDownItem = e.target.closest('.portfolio-item-clickable');
 
         if (removeBtn) {
@@ -338,6 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             await fetch(`/api/portfolio/remove/${ticker}`, { method: 'POST' });
             await loadPortfolio(); // Refresh the portfolio list
+        } else if (editableQtySpan) {
+            // Handle making the quantity editable. This is more specific than the drill-down.
+            makeQuantityEditable(editableQtySpan);
         } else if (drillDownItem) {
             // Handle drilling down into a stock's details
             const ticker = drillDownItem.dataset.ticker;

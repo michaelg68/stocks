@@ -216,6 +216,27 @@ h1 {
     gap: 20px;
 }
 
+.editable-quantity {
+    cursor: pointer;
+    text-decoration: underline dotted;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.editable-quantity:hover {
+    background-color: #eef2f5;
+}
+
+.quantity-edit-input {
+    width: 80px;
+    padding: 4px;
+    font-size: 1em; /* Match the parent font size */
+    border: 1px solid #007BFF;
+    border-radius: 3px;
+    text-align: center;
+}
+
 .portfolio-item-info .symbol {
     font-weight: bold;
     color: #333;
