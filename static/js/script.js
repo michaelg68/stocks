@@ -270,10 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
             portfolioLoadingDiv.classList.add('hidden');
 
             if (response.ok) {
-                // Display total portfolio value
-                portfolioTotalDiv.innerHTML = `<h3>Total Value: ${formatCurrency(data.totalValueUsd, 'USD')}</h3>`;
-
-                if (data.items.length === 0) {
+                // Since the API no longer provides a total, we hide this element.
+                // A meaningful total would require currency conversion on the client side.
+                portfolioTotalDiv.innerHTML = '';
+                
+                if (!data.items || data.items.length === 0) {
                     portfolioList.innerHTML = '<li>Your portfolio is empty.</li>';
                 } else {
                     data.items.forEach(stock => {
@@ -286,7 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="portfolio-item-details">
                                     <span>Qty: <span class="editable-quantity" data-ticker="${stock.symbol}">${stock.quantity}</span></span>
-                                    <span class="value-display">Value: ${formatCurrency(stock.valueUsd, 'USD')}</span>
+                                    <span>Price: ${formatCurrency(stock.currentPrice, stock.currency)}</span>
+                                    <span class="value-display">Value: ${formatCurrency(stock.valueLocal, stock.currency)}</span>
                                 </div>
                             </div>
                             <button class="remove-btn" data-ticker="${stock.symbol}">Remove</button>
