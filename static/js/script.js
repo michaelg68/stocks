@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- This is the new logic to render the total portfolio value ---
                 if (data.totals && (data.totals.usd > 0 || data.totals.ils > 0)) {
                     const totalUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.totals.usd);
-                    const totalILS = new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(data.totals.ils);
+                    const totalILS = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ILS' }).format(data.totals.ils);
                     portfolioTotalEl.innerHTML = `<div class="portfolio-totals"><strong>Total Value:</strong> ${totalUSD} | ${totalILS}</div>`;
                 }
                 // --- End of new logic ---
