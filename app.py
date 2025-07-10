@@ -5,7 +5,7 @@ from flask import Flask, render_template, jsonify, g, request
 import requests
 
 DATABASE = 'portfolio.db'
-app = Flask(__name__)
+
 
 def get_db_connection():
     """
