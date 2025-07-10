@@ -297,7 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     data.items.forEach(item => {
                         const li = document.createElement('li');
                         li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                        const valueFormatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency, minimumFractionDigits: 2 }).format(item.valueLocal);
+                        const priceFormatted = formatCurrency(item.currentPrice, item.currency);
+                        const valueFormatted = formatCurrency(item.valueLocal, item.currency);
                         
                         li.innerHTML = `
                             <div class="portfolio-item-clickable flex-grow-1" data-ticker="${item.symbol}" style="cursor: pointer;">
@@ -305,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <strong>${item.name} (${item.symbol})</strong>
                                 </div>
                                 <small class="text-muted">
-                                    Qty: <span class="editable-quantity" data-ticker="${item.symbol}">${item.quantity}</span> &bull; Value: ${valueFormatted}
+                                    Qty: <span class="editable-quantity" data-ticker="${item.symbol}">${item.quantity}</span> &bull; Price: ${priceFormatted} &bull; Value: ${valueFormatted}
                                 </small>
                             </div>
                             <button class="btn btn-sm btn-outline-danger remove-btn" data-ticker="${item.symbol}" title="Remove ${item.symbol}">&times;</button>
