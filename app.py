@@ -113,7 +113,7 @@ def get_portfolio():
     tickers_rows = conn.execute('SELECT ticker, quantity FROM portfolio ORDER BY ticker').fetchall()
     
     if not tickers_rows:
-        return jsonify({'items': [], 'totalValueUsd': 0})
+        return jsonify({'items': []})
 
     tickers_with_qty = {row['ticker']: row['quantity'] for row in tickers_rows}
     tickers_list = list(tickers_with_qty.keys())
@@ -121,19 +121,8 @@ def get_portfolio():
     try:
         # Fetch all ticker data in one batch request for efficiency
         stock_data = yf.Tickers(' '.join(tickers_list))
-        
-        currencies = {stock_data.tickers[t].info.get('currency', 'USD') for t in tickers_list}
-        rate_tickers_needed = {f"{c}USD=X" for c in currencies if c and c != 'USD'}
-        
-        rates_data = {}
-        if rate_tickers_needed:
-            rates_info = yf.Tickers(' '.join(rate_tickers_needed))
-            for rate_ticker in rate_tickers_needed:
-                currency_code = rate_ticker.replace("USD=X", "")
-                rates_data[currency_code] = rates_info.tickers[rate_ticker].info.get('regularMarketPrice')
 
         portfolio_items = []
-        total_portfolio_value_usd = 0
 
         for ticker, quantity in tickers_with_qty.items():
             info = stock_data.tickers[ticker].info
@@ -146,14 +135,6 @@ def get_portfolio():
             price /= divisor
             
             value_local = price * quantity
-            
-            value_usd = value_local
-            if currency != 'USD':
-                rate = rates_data.get(currency)
-                if rate: value_usd *= rate
-                else: value_usd = 0 # Cannot convert, so exclude from total
-            
-            total_portfolio_value_usd += value_usd
 
             portfolio_items.append({
                 'name': info.get('shortName', 'N/A'),
@@ -161,10 +142,10 @@ def get_portfolio():
                 'quantity': quantity,
                 'currentPrice': price,
                 'currency': currency,
-                'valueUsd': value_usd
+                'valueLocal': value_local
             })
             
-        return jsonify({'items': portfolio_items, 'totalValueUsd': total_portfolio_value_usd})
+        return jsonify({'items': portfolio_items})
     except Exception as e:
         return jsonify({'error': f"An error occurred while fetching portfolio data: {str(e)}"}), 500
 
