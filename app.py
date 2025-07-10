@@ -6,7 +6,7 @@ import requests
 
 DATABASE = 'portfolio.db'
 
-
+app = Flask(__name__)
 def get_db_connection():
     """
     Establishes a connection to the database, reusing it if it exists
