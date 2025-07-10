@@ -260,53 +260,69 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Portfolio Logic ---
-    const loadPortfolio = async () => {
-        portfolioLoadingDiv.classList.remove('hidden');
-        portfolioList.innerHTML = ''; // Clear existing list
+    function loadPortfolio() {
+        const portfolioLoading = document.getElementById('portfolioLoading');
+        const portfolioList = document.getElementById('portfolioList');
+        const portfolioTotalEl = document.getElementById('portfolioTotal');
 
-        try {
-            const response = await fetch('/api/portfolio');
-            const data = await response.json();
-            portfolioLoadingDiv.classList.add('hidden');
+        // Show loading indicators and clear previous data
+        portfolioLoading.classList.remove('hidden');
+        portfolioList.innerHTML = '';
+        portfolioTotalEl.innerHTML = '';
 
-            if (response.ok) {
-                // Since the API no longer provides a total, we hide this element.
-                // A meaningful total would require currency conversion on the client side.
-                portfolioTotalDiv.innerHTML = '';
-                
-                if (!data.items || data.items.length === 0) {
-                    portfolioList.innerHTML = '<li>Your portfolio is empty.</li>';
-                } else {
-                    data.items.forEach(stock => {
+        fetch('/api/portfolio')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                portfolioLoading.classList.add('hidden');
+
+                if (data.error) {
+                    portfolioList.innerHTML = `<li>Error: ${data.error}</li>`;
+                    return;
+                }
+
+                // --- This is the new logic to render the total portfolio value ---
+                if (data.totals && (data.totals.usd > 0 || data.totals.ils > 0)) {
+                    const totalUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.totals.usd);
+                    const totalILS = new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(data.totals.ils);
+                    portfolioTotalEl.innerHTML = `<div class="portfolio-totals"><strong>Total Value:</strong> ${totalUSD} | ${totalILS}</div>`;
+                }
+                // --- End of new logic ---
+
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
                         const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        const valueFormatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: item.currency, minimumFractionDigits: 2 }).format(item.valueLocal);
+                        
                         li.innerHTML = `
-                            <div class="portfolio-item-info portfolio-item-clickable" data-ticker="${stock.symbol}">
-                                <div class="portfolio-item-main">
-                                    <span class="symbol">${stock.symbol}</span>
-                                    <span class="name">(${stock.name})</span>
+                            <div class="portfolio-item-clickable flex-grow-1" data-ticker="${item.symbol}" style="cursor: pointer;">
+                                <div>
+                                    <strong>${item.name} (${item.symbol})</strong>
                                 </div>
-                                <div class="portfolio-item-details">
-                                    <span>Qty: <span class="editable-quantity" data-ticker="${stock.symbol}">${stock.quantity}</span></span>
-                                    <span>Price: ${formatCurrency(stock.currentPrice, stock.currency)}</span>
-                                    <span class="value-display">Value: ${formatCurrency(stock.valueLocal, stock.currency)}</span>
-                                </div>
+                                <small class="text-muted">
+                                    Qty: <span class="editable-quantity" data-ticker="${item.symbol}">${item.quantity}</span> &bull; Value: ${valueFormatted}
+                                </small>
                             </div>
-                            <button class="remove-btn" data-ticker="${stock.symbol}">Remove</button>
+                            <button class="btn btn-sm btn-outline-danger remove-btn" data-ticker="${item.symbol}" title="Remove ${item.symbol}">&times;</button>
                         `;
                         portfolioList.appendChild(li);
                     });
+                } else {
+                    portfolioList.innerHTML = '<li>Your portfolio is empty.</li>';
                 }
-            } else {
-                portfolioTotalDiv.innerHTML = '';
-                portfolioList.innerHTML = '<li>Could not load portfolio.</li>';
-            }
-        } catch (error) {
-            portfolioTotalDiv.innerHTML = '';
-            portfolioLoadingDiv.classList.add('hidden');
-            portfolioList.innerHTML = '<li>Error loading portfolio.</li>';
-            console.error('Portfolio fetch error:', error);
-        }
-    };
+            })
+            .catch(error => {
+                portfolioLoading.classList.add('hidden');
+                portfolioList.innerHTML = `<li>Failed to load portfolio: ${error.message}</li>`;
+                console.error('Error loading portfolio:', error);
+            });
+    }
+
 
     const handleAddToPortfolio = async () => {
         const ticker = addToPortfolioBtn.dataset.ticker;

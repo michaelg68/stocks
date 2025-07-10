@@ -113,28 +113,46 @@ def get_portfolio():
     tickers_rows = conn.execute('SELECT ticker, quantity FROM portfolio ORDER BY ticker').fetchall()
     
     if not tickers_rows:
-        return jsonify({'items': []})
+        return jsonify({'items': [], 'totals': {'usd': 0, 'ils': 0}})
 
     tickers_with_qty = {row['ticker']: row['quantity'] for row in tickers_rows}
     tickers_list = list(tickers_with_qty.keys())
 
     try:
+        # Fetch the current USD to ILS exchange rate for conversions.
+        usd_ils_rate_ticker = yf.Ticker("USDILS=X")
+        usd_ils_rate_info = usd_ils_rate_ticker.info
+        usd_ils_rate = usd_ils_rate_info.get('regularMarketPrice') or usd_ils_rate_info.get('currentPrice')
+
+        if not usd_ils_rate:
+            return jsonify({'error': "Could not fetch the USD/ILS exchange rate."}), 503
+
         # Fetch all ticker data in one batch request for efficiency
         stock_data = yf.Tickers(' '.join(tickers_list))
 
         portfolio_items = []
+        total_value_usd = 0.0
 
         for ticker, quantity in tickers_with_qty.items():
             info = stock_data.tickers[ticker].info
             currency = info.get('currency', 'USD')
             price = info.get('regularMarketPrice', info.get('currentPrice'))
             
-            if price is None: continue
+            if price is None:
+                # Skip this item if price data is unavailable
+                continue
 
             divisor = 100.0 if currency in ('ILS', 'ILA') else 1.0
             price /= divisor
             
             value_local = price * quantity
+
+            # Aggregate total value in USD
+            if currency in ('ILS', 'ILA'):
+                total_value_usd += value_local / usd_ils_rate
+            elif currency == 'USD':
+                total_value_usd += value_local
+            # Note: Stocks in other currencies are not included in the total for now.
 
             portfolio_items.append({
                 'name': info.get('shortName', 'N/A'),
@@ -142,10 +160,15 @@ def get_portfolio():
                 'quantity': quantity,
                 'currentPrice': price,
                 'currency': currency,
-                'valueLocal': value_local
+                'valueLocal': value_local,
             })
-            
-        return jsonify({'items': portfolio_items})
+
+        total_value_ils = total_value_usd * usd_ils_rate
+
+        return jsonify({
+            'items': portfolio_items,
+            'totals': {'usd': total_value_usd, 'ils': total_value_ils}
+        })
     except Exception as e:
         return jsonify({'error': f"An error occurred while fetching portfolio data: {str(e)}"}), 500
 
