@@ -196,6 +196,37 @@ def remove_from_portfolio(ticker):
     conn.commit()
     return jsonify({'success': f'{ticker} removed from portfolio.'})
 
+@app.route('/api/portfolio/export', methods=['GET'])
+def export_portfolio():
+    """API endpoint to export the portfolio to a JSON file."""
+    conn = get_db_connection()
+    tickers_rows = conn.execute('SELECT ticker, quantity FROM portfolio ORDER BY ticker').fetchall()
+    portfolio = [{'ticker': row['ticker'], 'quantity': row['quantity']} for row in tickers_rows]
+    return jsonify(portfolio)
+
+@app.route('/api/portfolio/import', methods=['POST'])
+def import_portfolio():
+    """API endpoint to import a portfolio from a JSON file."""
+    data = request.get_json()
+    if not isinstance(data, list):
+        return jsonify({'error': 'Invalid format: expected a list of stocks.'}), 400
+
+    conn = get_db_connection()
+    # Clear existing portfolio
+    conn.execute('DELETE FROM portfolio')
+
+    for item in data:
+        ticker = item.get('ticker')
+        quantity = item.get('quantity')
+        if not ticker or quantity is None or float(quantity) < 0:
+            # Rollback changes if any item is invalid
+            conn.rollback()
+            return jsonify({'error': f'Invalid item found: {item}'}), 400
+        conn.execute('INSERT INTO portfolio (ticker, quantity) VALUES (?, ?)', (ticker.upper(), float(quantity)))
+
+    conn.commit()
+    return jsonify({'success': 'Portfolio imported successfully.'})
+
 if __name__ == '__main__':
     with app.app_context():
         init_database() # Creates the database file and table on first run

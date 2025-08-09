@@ -426,6 +426,61 @@ document.addEventListener('DOMContentLoaded', () => {
     portfolioList.addEventListener('click', handlePortfolioClick);
     rangeSelector.addEventListener('click', handleRangeChange);
 
+    // --- Import/Export Logic ---
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+
+    const handleExport = async () => {
+        const response = await fetch('/api/portfolio/export');
+        const data = await response.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'portfolio.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = () => {
+        importFile.click();
+    };
+
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const portfolioData = JSON.parse(event.target.result);
+                const response = await fetch('/api/portfolio/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(portfolioData)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Portfolio imported successfully!');
+                    loadPortfolio();
+                } else {
+                    alert(`Error importing portfolio: ${result.error}`);
+                }
+            } catch (error) {
+                alert('Invalid JSON file.');
+                console.error('Error parsing or importing file:', error);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    exportBtn.addEventListener('click', handleExport);
+    importBtn.addEventListener('click', handleImport);
+    importFile.addEventListener('change', handleFileSelect);
+
     // --- Initial Load ---
     loadPortfolio();
 });

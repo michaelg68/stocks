@@ -48,6 +48,11 @@
     </div>
     <div class="container" id="portfolioSection">
         <h2>My Portfolio</h2>
+        <div class="portfolio-actions">
+            <button id="exportBtn">Export Portfolio</button>
+            <button id="importBtn">Import Portfolio</button>
+            <input type="file" id="importFile" class="hidden" accept=".json">
+        </div>
         <div id="portfolioTotal"></div>
         <div id="portfolioLoading" class="hidden">Loading portfolio...</div>
         <ul id="portfolioList"></ul>
