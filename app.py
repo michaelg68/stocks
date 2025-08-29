@@ -31,7 +31,7 @@ def init_database():
     conn.execute('CREATE TABLE IF NOT EXISTS portfolio (ticker TEXT PRIMARY KEY, quantity REAL NOT NULL)')
     conn.commit()
 
-@app.route('/')
+@app.route('/stocks')
 def index():
     """Renders the main page."""
     return render_template('index.html')
