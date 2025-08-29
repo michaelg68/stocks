@@ -4,6 +4,10 @@
     "ticker": "AAPL"
   },
   {
+    "quantity": 100,
+    "ticker": "DORL.TA"
+  },
+  {
     "quantity": 2,
     "ticker": "DOX"
   },
@@ -16,7 +20,11 @@
     "ticker": "GOOGL"
   },
   {
-    "quantity": 1,
+    "quantity": 200,
+    "ticker": "JEEN.TA"
+  },
+  {
+    "quantity": 2,
     "ticker": "MSFT"
   },
   {
@@ -30,5 +38,9 @@
   {
     "quantity": 7,
     "ticker": "TSLA"
+  },
+  {
+    "quantity": 50,
+    "ticker": "^TA125.TA"
   }
 ]
