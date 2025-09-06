@@ -16,6 +16,10 @@
     "ticker": "ELAL.TA"
   },
   {
+    "quantity": 3,
+    "ticker": "ESLT.TA"
+  },
+  {
     "quantity": 5,
     "ticker": "GOOGL"
   },
@@ -28,7 +32,7 @@
     "ticker": "MSFT"
   },
   {
-    "quantity": 30,
+    "quantity": 50,
     "ticker": "TA35.TA"
   },
   {
