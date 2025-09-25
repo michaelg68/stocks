@@ -28,8 +28,12 @@
     "ticker": "JEEN.TA"
   },
   {
-    "quantity": 2,
+    "quantity": 7,
     "ticker": "MSFT"
+  },
+  {
+    "quantity": 15,
+    "ticker": "NVDA"
   },
   {
     "quantity": 50,
